@@ -30,14 +30,14 @@ defmodule BlockScoutWeb.AddressTokenControllerTest do
         |> insert(name: "token2")
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token1.contract_address_hash,
         value: 1000
       )
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token2.contract_address_hash,
         value: 0
@@ -77,7 +77,7 @@ defmodule BlockScoutWeb.AddressTokenControllerTest do
           token = insert(:token, name: "A Token#{i}", type: "ERC-20")
 
           insert(
-            :token_balance,
+            :address_current_token_balance,
             token_contract_address_hash: token.contract_address_hash,
             address: address,
             value: 1000
@@ -91,7 +91,7 @@ defmodule BlockScoutWeb.AddressTokenControllerTest do
       token = insert(:token, name: "Another Token", type: "ERC-721")
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         token_contract_address_hash: token.contract_address_hash,
         address: address,
         value: 1000
@@ -121,7 +121,7 @@ defmodule BlockScoutWeb.AddressTokenControllerTest do
         token = insert(:token, name: "A Token#{i}", type: "ERC-20")
 
         insert(
-          :token_balance,
+          :address_current_token_balance,
           token_contract_address_hash: token.contract_address_hash,
           address: address,
           value: 1000

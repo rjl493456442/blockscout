@@ -16,7 +16,7 @@ defmodule Explorer.Chain.Address.Token do
   import Ecto.Query
 
   alias Explorer.{Chain, PagingOptions}
-  alias Explorer.Chain.{Address, Address.TokenBalance, Hash}
+  alias Explorer.Chain.{Address, Address.CurrentTokenBalance, Hash}
 
   @enforce_keys [:contract_address_hash, :inserted_at, :name, :symbol, :balance, :decimals, :type, :transfers_count]
   defstruct @enforce_keys
@@ -62,10 +62,8 @@ defmodule Explorer.Chain.Address.Token do
   defp join_with_last_balance(queryable, address_hash) do
     last_balance_query =
       from(
-        tb in TokenBalance,
+        tb in CurrentTokenBalance,
         where: tb.address_hash == ^address_hash,
-        distinct: :token_contract_address_hash,
-        order_by: [desc: :block_number],
         select: %{value: tb.value, token_contract_address_hash: tb.token_contract_address_hash}
       )
 

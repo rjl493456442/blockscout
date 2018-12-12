@@ -16,7 +16,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token.contract_address_hash,
         value: 1000
@@ -63,7 +63,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token.contract_address_hash,
         value: 1000
@@ -82,7 +82,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token2.contract_address_hash,
         value: 1000
@@ -113,7 +113,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token.contract_address_hash,
         value: 1000
@@ -132,7 +132,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token2.contract_address_hash,
         value: 1000
@@ -151,7 +151,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token3.contract_address_hash,
         value: 1000
@@ -182,7 +182,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token.contract_address_hash,
         value: 1000
@@ -201,7 +201,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token2.contract_address_hash,
         value: 1000
@@ -220,7 +220,7 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Repo.preload(:contract_address)
 
       insert(
-        :token_balance,
+        :address_current_token_balance,
         address: address,
         token_contract_address_hash: token3.contract_address_hash,
         value: 1000
@@ -265,44 +265,6 @@ defmodule Explorer.Chain.Address.TokenTest do
         |> Enum.find(fn t -> t.name == "atoken" end)
 
       assert fetched_token == nil
-    end
-
-    test "brings the value of the last balance" do
-      address = insert(:address)
-
-      token =
-        :token
-        |> insert(name: "atoken", type: "ERC-721", decimals: 0, symbol: "AT")
-        |> Repo.preload(:contract_address)
-
-      insert(
-        :token_balance,
-        address: address,
-        token_contract_address_hash: token.contract_address_hash,
-        value: 1000
-      )
-
-      insert(
-        :token_balance,
-        address: address,
-        token_contract_address_hash: token.contract_address_hash,
-        value: 1234
-      )
-
-      insert(
-        :token_transfer,
-        token_contract_address: token.contract_address,
-        from_address: address,
-        to_address: build(:address)
-      )
-
-      fetched_token =
-        address.hash
-        |> Address.Token.list_address_tokens_with_balance()
-        |> Repo.all()
-        |> List.first()
-
-      assert fetched_token.balance == Decimal.new(1234)
     end
 
     test "ignores token if the last balance is zero" do
