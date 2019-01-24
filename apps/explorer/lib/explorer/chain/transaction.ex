@@ -5,7 +5,7 @@ defmodule Explorer.Chain.Transaction do
 
   require Logger
 
-  import Ecto.Query, only: [from: 2, preload: 3, subquery: 1, where: 3]
+  import Ecto.Query, only: [from: 2, order_by: 3, preload: 3, subquery: 1, where: 3]
 
   alias ABI.FunctionSelector
 
@@ -27,7 +27,7 @@ defmodule Explorer.Chain.Transaction do
   alias Explorer.Chain.Transaction.{Fork, Status}
 
   @optional_attrs ~w(block_hash block_number created_contract_address_hash cumulative_gas_used error gas_used index
-                     internal_transactions_indexed_at status to_address_hash)a
+                     internal_transactions_indexed_at created_contract_code_indexed_at status to_address_hash)a
   @required_attrs ~w(from_address_hash gas gas_price hash input nonce r s v value)a
 
   @typedoc """
@@ -96,7 +96,19 @@ defmodule Explorer.Chain.Transaction do
    * `input`- data sent along with the transaction
    * `internal_transactions` - transactions (value transfers) created while executing contract used for this
      transaction
-   * `internal_transactions_indexed_at` - when `internal_transactions` were fetched by `Indexer`.
+   * `internal_transactions_indexed_at` - when `internal_transactions` were fetched by `Indexer` or when they do not
+     need to be fetched at `inserted_at`.
+   * `created_contract_code_indexed_at` - when created `address` code was fetched by `Indexer`
+
+     | `status` | `contract_creation_address_hash` | `input`    | Token Transfer? | `internal_transactions_indexed_at`        | `internal_transactions` | Description                                                                                         |
+     |----------|----------------------------------|------------|-----------------|-------------------------------------------|-------------------------|-----------------------------------------------------------------------------------------------------|
+     | `:ok`    | `nil`                            | Empty      | Don't Care      | `inserted_at`                             | Unfetched               | Simple `value` transfer transaction succeeded.  Internal transactions would be same value transfer. |
+     | `:ok`    | `nil`                            | Don't Care | `true`          | `inserted_at`                             | Unfetched               | Token transfer (from `logs`) that didn't happen during a contract creation.                         |
+     | `:ok`    | Don't Care                       | Non-Empty  | Don't Care      | When `internal_transactions` are indexed. | Fetched                 | A contract call that succeeded.                                                                     |
+     | `:error` | nil                              | Empty      | Don't Care      | When `internal_transactions` are indexed. | Fetched                 | Simple `value` transfer transaction failed. Internal transactions fetched for `error`.              |
+     | `:error` | Don't Care                       | Non-Empty  | Don't Care      | When `internal_transactions` are indexed. | Fetched                 | A contract call that failed.                                                                        |
+     | `nil`    | Don't Care                       | Don't Care | Don't Care      | When `internal_transactions` are indexed. | Depends                 | A pending post-Byzantium transaction will only know its status from receipt.                        |
+     | `nil`    | Don't Care                       | Don't Care | Don't Care      | When `internal_transactions` are indexed. | Fetched                 | A pre-Byzantium transaction requires internal transactions to determine status.                     |
    * `logs` - events that occurred while mining the `transaction`.
    * `nonce` - the number of transaction made by the sender prior to this one
    * `r` - the R field of the signature. The (r, s) is the normal output of an ECDSA signature, where r is computed as
@@ -117,6 +129,7 @@ defmodule Explorer.Chain.Transaction do
           block_number: Block.block_number() | nil,
           created_contract_address: %Ecto.Association.NotLoaded{} | Address.t() | nil,
           created_contract_address_hash: Hash.Address.t() | nil,
+          created_contract_code_indexed_at: DateTime.t() | nil,
           cumulative_gas_used: Gas.t() | nil,
           error: String.t() | nil,
           forks: %Ecto.Association.NotLoaded{} | [Fork.t()],
@@ -151,7 +164,8 @@ defmodule Explorer.Chain.Transaction do
     field(:gas_price, Wei)
     field(:gas_used, :decimal)
     field(:index, :integer)
-    field(:internal_transactions_indexed_at, :utc_datetime)
+    field(:internal_transactions_indexed_at, :utc_datetime_usec)
+    field(:created_contract_code_indexed_at, :utc_datetime_usec)
     field(:input, Data)
     field(:nonce, :integer)
     field(:r, :decimal)
@@ -468,15 +482,15 @@ defmodule Explorer.Chain.Transaction do
   end
 
   @doc """
-  Adds to the given transaction's query a `where` with one of the conditions that the matched
-  function returns.
+  Builds a query that will check for transactions within the hashes params.
 
-  `where_address_fields_match(query, address, address_field)`
-  - returns a query constraining the given address_hash to be equal to the given
-    address field from transactions' table.
+  Be careful to not pass a large list, because this will lead to performance
+  problems.
   """
-  def where_address_fields_match(query, address_hash, address_field) do
-    where(query, [t], field(t, ^address_field) == ^address_hash)
+  def where_transaction_hashes_match(transaction_hashes) do
+    Transaction
+    |> where([t], t.hash == fragment("ANY (?)", ^transaction_hashes))
+    |> order_by([transaction], desc: transaction.block_number, desc: transaction.index)
   end
 
   @collated_fields ~w(block_number cumulative_gas_used gas_used index)a
@@ -593,6 +607,16 @@ defmodule Explorer.Chain.Transaction do
       where: tt.token_contract_address_hash == ^token_hash,
       where: tt.from_address_hash == ^address_hash or tt.to_address_hash == ^address_hash,
       distinct: :hash
+    )
+  end
+
+  @doc """
+  Builds an `Ecto.Query` to fetch transactions with the specified block_number
+  """
+  def transactions_with_block_number(block_number) do
+    from(
+      t in Transaction,
+      where: t.block_number == ^block_number
     )
   end
 
