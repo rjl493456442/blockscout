@@ -174,11 +174,6 @@ ENV PORT=4000 \
     POSTGRES_USER=postgres\
     SUBNETWORK=
 
-# Note: this is a build issue in original blockscout dockerfile
-# see https://github.com/poanetwork/blockscout/issues/1200 for detail
-# This is a temporary solution, will update when upstrem fix it.
-ADD . . 
-
 # Cache elixir deps
 ADD mix.exs mix.lock ./
 ADD apps/block_scout_web/mix.exs ./apps/block_scout_web/
