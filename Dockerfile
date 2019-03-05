@@ -153,7 +153,7 @@ RUN wget https://raw.githubusercontent.com/docker-library/postgres/master/$PG_MA
     chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Build blockscout
-RUN apk --no-cache --update add automake libtool inotify-tools autoconf
+RUN apk --no-cache --update add alpine-sdk gmp-dev automake libtool inotify-tools autoconf python 
 
 ENV PORT=4000 \
     MIX_ENV="prod" \
@@ -191,7 +191,7 @@ RUN cd apps/block_scout_web/assets/ && \
 
 RUN cd apps/explorer/ && \
     npm install && \
-    apk del --force-broken-world automake libtool inotify-tools autoconf	
+    apk del --force-broken-world alpine-sdk gmp-dev automake libtool inotify-tools autoconf python
 
 COPY --from=builder /usr/local/bin/geth /usr/local/bin
 
